@@ -23,21 +23,28 @@ namespace HW1
 
         private Id3Node() { }
 
-        public static Id3Node BuildTree(IEnumerable<int[]> instances, int classAttributeIndex)
+        public static Id3Node BuildTree(List<int[]> instances, int classAttributeIndex)
         {
             return BuildTree(instances, classAttributeIndex, 0);
         }
 
-        public static Id3Node BuildTree(IEnumerable<int[]> instances, int classAttributeIndex, double confidence)
+        public static Id3Node BuildTree(List<int[]> instances, int classAttributeIndex, double confidence)
         {
             bool[] visitedAttributes = new bool[instances.First().Length];
             return BuildTree(instances, classAttributeIndex, confidence, visitedAttributes);
         }
 
-        public static Id3Node BuildTree(IEnumerable<int[]> instances, int classAttributeIndex, double confidence, bool[] visitedAttributes)
+        /// <summary>
+        /// Builds a tree based on the instances received.
+        /// </summary>
+        /// <param name="instances">The list of instances to train on.</param>
+        /// <param name="classAttributeIndex">The index of the class attribute.</param>
+        /// <param name="confidence">The confidence threshold for split stop.</param>
+        /// <param name="visitedAttributes">Flag array to keep track of which attributes have already been visited so far.</param>
+        /// <returns>The trained tree for the given list of instances and confidence threshold</returns>
+        public static Id3Node BuildTree(List<int[]> instances, int classAttributeIndex, double confidence, bool[] visitedAttributes)
         {
-            List<int[]> localInstances = new List<int[]>(instances);
-            int classType = localInstances[0][classAttributeIndex];
+            int classType = instances[0][classAttributeIndex];
             if (instances.All(i => i[classAttributeIndex] == classType))
             {
                 return new Id3Node
@@ -79,7 +86,7 @@ namespace HW1
 
             foreach (int attributeValue in bestNode.ValueClassCounts.Keys)
             {
-                bestNode.Children[attributeValue] = BuildTree(instances.Where(i => i[bestNode.AttributeIndex] == attributeValue).ToArray(), classAttributeIndex, confidence, localVisitedAttributes);
+                bestNode.Children[attributeValue] = BuildTree(instances.Where(i => i[bestNode.AttributeIndex] == attributeValue).ToList(), classAttributeIndex, confidence, localVisitedAttributes);
                 bestNode.Children[attributeValue].Parent = bestNode;
                 bestNode.Children[attributeValue].ParentValue = attributeValue;
             }

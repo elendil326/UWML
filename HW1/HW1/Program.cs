@@ -64,11 +64,15 @@ namespace HW1
             Parallel.ForEach(confidences, confidence =>
             {
                 Id3Node tree = Id3Node.BuildTree(trainingData, trainingData[0].Length - 1, confidence);
-                Console.WriteLine($"Confidence {confidence}: Num of nodes {GetCount(tree)}");
-                Console.WriteLine($"Confidence {confidence}: Accuracy on train = { trainingData.Where(instance => GetClass(instance, tree) == instance[trainingData[0].Length - 1]).Count() / (double)trainingData.Count}");
-                Console.WriteLine($"Confidence {confidence}: Accuracy on test = { testData.Where(instance => GetClass(instance, tree) == instance[testData[0].Length - 1]).Count() / (double)testData.Count}");
-                StringBuilder sb = new StringBuilder();
 
+                Console.WriteLine($"Confidence {confidence}: Num of nodes {GetCount(tree)}");
+                // Test accuracy on training
+                Console.WriteLine($"Confidence {confidence}: Accuracy on train = { trainingData.Where(instance => GetClass(instance, tree) == instance[trainingData[0].Length - 1]).Count() / (double)trainingData.Count}");
+
+                // Test accuracy on test
+                Console.WriteLine($"Confidence {confidence}: Accuracy on test = { testData.Where(instance => GetClass(instance, tree) == instance[testData[0].Length - 1]).Count() / (double)testData.Count}");
+
+                StringBuilder sb = new StringBuilder();
                 // Only print small trees.
                 if (confidence > 0.5)
                 {
