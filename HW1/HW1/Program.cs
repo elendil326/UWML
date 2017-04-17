@@ -1,6 +1,7 @@
 ﻿using ArffTools;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,6 +13,8 @@ namespace HW1
         private static string _arffFile = @".\DataSetFiles\training_subsetD.arff";
 
         private static string _testArffFile = @".\DataSetFiles\testingD.arff";
+
+        private static string _outputFolder = @"c:\Test";
 
         static void Main(string[] args)
         {
@@ -64,6 +67,15 @@ namespace HW1
                 Console.WriteLine($"Confidence {confidence}: Num of nodes {GetCount(tree)}");
                 Console.WriteLine($"Confidence {confidence}: Accuracy on train = { trainingData.Where(instance => GetClass(instance, tree) == instance[trainingData[0].Length - 1]).Count() / (double)trainingData.Count}");
                 Console.WriteLine($"Confidence {confidence}: Accuracy on test = { testData.Where(instance => GetClass(instance, tree) == instance[testData[0].Length - 1]).Count() / (double)testData.Count}");
+                StringBuilder sb = new StringBuilder();
+
+                // Only print small trees.
+                if (confidence > 0.5)
+                {
+                    PrintTreeAsRules(sb, tree, header);
+                    Directory.CreateDirectory(_outputFolder);
+                    File.WriteAllText(Path.Combine(_outputFolder, $"Tree{confidence}.txt"), sb.ToString());
+                }
             });
         }
 
@@ -92,23 +104,31 @@ namespace HW1
             return GetClass(instance, tree.Children[valueIndex]);
         }
 
-        private static void PrintTree(Id3Node tree, ArffHeader header, string suffix, int classAttributeIndex)
+        private static void PrintTreeAsRules(StringBuilder sb, Id3Node tree, ArffHeader header)
         {
             if (tree.IsLeaf)
             {
-                Console.WriteLine($"{suffix}{((ArffNominalAttribute)header.Attributes.ElementAt(classAttributeIndex).Type).Values[tree.Class]}");
-                return;
-            }
-
-            Console.WriteLine($"{suffix}{header.Attributes.ElementAt(tree.AttributeIndex).Name}");
-            foreach (KeyValuePair<int, Id3Node> kvp in tree.Children)
-            {
-                if (kvp.Key == -1)
+                if (tree.Class == 0)
                 {
-                    Console.WriteLine($"{suffix}-->?");
+                    sb.AppendLine("Rule is:");
+                    while (tree.Parent != null)
+                    {
+                        string value = tree.ParentValue == -1 ? "?" : ((ArffNominalAttribute)header.Attributes.ElementAt(tree.Parent.AttributeIndex).Type).Values[tree.ParentValue];
+                        sb.Append($"<{header.Attributes.ElementAt(tree.Parent.AttributeIndex).Name}> equals to <{value}>");
+                        sb.Append(" and ");
+                        tree = tree.Parent;
+                    }
+                    sb.AppendLine();
+                    sb.AppendLine("---------------------------------------");
                 }
-                Console.WriteLine($"{suffix}--> {((ArffNominalAttribute)header.Attributes.ElementAt(tree.AttributeIndex).Type).Values[kvp.Key]}");
-                PrintTree(kvp.Value, header, $"{suffix}{suffix}", classAttributeIndex);
+            }
+            else
+            {
+                foreach (KeyValuePair<int, Id3Node> kvp in tree.Children)
+                {
+
+                    PrintTreeAsRules(sb, kvp.Value, header);
+                }
             }
         }
 

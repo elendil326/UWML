@@ -11,6 +11,10 @@ namespace HW1
 
         public Dictionary<int, Dictionary<int, int>> ValueClassCounts { get; } = new Dictionary<int, Dictionary<int, int>>();
 
+        public Id3Node Parent { get; private set; }
+
+        public int ParentValue { get; private set; } = -1;
+
         public Dictionary<int, Id3Node> Children { get; } = new Dictionary<int, Id3Node>();
 
         public bool IsLeaf { get { return !Children.Any(); } }
@@ -76,6 +80,8 @@ namespace HW1
             foreach (int attributeValue in bestNode.ValueClassCounts.Keys)
             {
                 bestNode.Children[attributeValue] = BuildTree(instances.Where(i => i[bestNode.AttributeIndex] == attributeValue).ToArray(), classAttributeIndex, confidence, localVisitedAttributes);
+                bestNode.Children[attributeValue].Parent = bestNode;
+                bestNode.Children[attributeValue].ParentValue = attributeValue;
             }
 
             return bestNode;
