@@ -44,6 +44,7 @@ namespace HW1
         /// <returns>The trained tree for the given list of instances and confidence threshold</returns>
         public static Id3Node BuildTree(List<int[]> instances, int classAttributeIndex, double confidence, bool[] visitedAttributes)
         {
+            // If all instances are of the same class.
             int classType = instances[0][classAttributeIndex];
             if (instances.All(i => i[classAttributeIndex] == classType))
             {
@@ -96,8 +97,10 @@ namespace HW1
 
         private static Id3Node BestAttributeNode(IEnumerable<int[]> instances, bool[] visitedAttributes, int classAttributeIndex)
         {
+            // Each node will have the information on how many times a given value is present for a given class.
             Dictionary<int, Id3Node> attributeNodes = GetAttributeNodes(instances, visitedAttributes, classAttributeIndex);
 
+            // Calculate the conditional entropy and pick the min, as this will maximize mutual information.
             int minEntropyAttributeIndex = -1;
             double minEntropy = double.MaxValue;
             foreach (KeyValuePair<int, Id3Node> kvp in attributeNodes)
@@ -156,23 +159,36 @@ namespace HW1
             return attributeNodes;
         }
 
+        /// <summary>
+        /// Gets the conditional entropy for a map of values -> classes -> counts
+        /// </summary>
+        /// <param name="valueClassCounts">The map of values, the classes that appear and the counts in which they appear.</param>
+        /// <returns></returns>
         private static double GetEntropy(Dictionary<int, Dictionary<int, int>> valueClassCounts)
         {
+            // The sum of all counts of all classes of all possible values of the attribtes is the total.
             double total = valueClassCounts.SelectMany(kvp => kvp.Value).Select(kvp => kvp.Value).Sum();
 
             if (total == 0)
                 return 0;
 
+            // conditional entropy is the sum of the weighted entropy for each possible value of the attribute
             double entropy = valueClassCounts.Select(kvp => 
-                    ( (kvp.Value.Select(classCounts => classCounts.Value).Sum()) / total
-                    ) * GetI(kvp.Value)
+                    ( (kvp.Value.Select(classCounts => classCounts.Value).Sum()) / total // Calculate weight by adding all counts for one value and divinding by the total
+                    ) * GetI(kvp.Value) // Multiply by the information measure
                 ).Sum();
 
             return entropy;
         }
 
+        /// <summary>
+        /// Gets the information measure for a map between class index and class counts.
+        /// </summary>
+        /// <param name="classCounts">A map between class indexes and the count for that class.</param>
+        /// <returns>Returns the information measure.</returns>
         private static double GetI(Dictionary<int, int> classCounts)
         {
+            // The total is the sum of all classes counts.
             double total = classCounts.Values.Sum();
             if (total == 0)
                 return 0;

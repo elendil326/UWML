@@ -61,6 +61,8 @@ namespace HW1
                 0.9999
             };
 
+            PrintAsCsv(header, trainingData, @"c:\users\andresz\desktop\data.csv");
+
             Parallel.ForEach(confidences, confidence =>
             {
                 Id3Node tree = Id3Node.BuildTree(trainingData, trainingData[0].Length - 1, confidence);
@@ -73,10 +75,19 @@ namespace HW1
                 Console.WriteLine($"Confidence {confidence}: Accuracy on test = { testData.Where(instance => GetClass(instance, tree) == instance[testData[0].Length - 1]).Count() / (double)testData.Count}");
 
                 StringBuilder sb = new StringBuilder();
+                StringBuilder sbMaxPositive = new StringBuilder();
+                StringBuilder sbMaxNegative = new StringBuilder();
+                int maxPositive = int.MinValue;
+                int maxNegative = int.MinValue;
                 // Only print small trees.
                 if (confidence > 0.5)
                 {
-                    PrintTreeAsRules(sb, tree, header);
+                    PrintTreeAsRules(sb, ref sbMaxPositive, ref sbMaxNegative, ref maxPositive, ref maxNegative, tree, header);
+                    sb.AppendLine("The most max positive rule is:");
+                    sb.AppendLine(sbMaxPositive.ToString());
+                    sb.AppendLine();
+                    sb.AppendLine("The most max negative rule is:");
+                    sb.AppendLine(sbMaxNegative.ToString());
                     Directory.CreateDirectory(_outputFolder);
                     File.WriteAllText(Path.Combine(_outputFolder, $"Tree{confidence}.txt"), sb.ToString());
                 }
@@ -108,22 +119,44 @@ namespace HW1
             return GetClass(instance, tree.Children[valueIndex]);
         }
 
-        private static void PrintTreeAsRules(StringBuilder sb, Id3Node tree, ArffHeader header)
+        private static void PrintTreeAsRules(StringBuilder sb, ref StringBuilder sbMaxPositive, ref StringBuilder sbMaxNegative, ref int maxPositive, ref int maxNegative, Id3Node tree, ArffHeader header)
         {
             if (tree.IsLeaf)
             {
-                if (tree.Class == 0)
+                Id3Node leaf = tree;
+                StringBuilder localSB = new StringBuilder();
+                localSB.AppendLine("Rule is:");
+                localSB.AppendLine();
+
+                int count = tree.Parent.ValueClassCounts[tree.ParentValue].Values.Sum();
+                while (tree.Parent != null)
                 {
-                    sb.AppendLine("Rule is:");
-                    while (tree.Parent != null)
+                    string value = tree.ParentValue == -1 ? "?" : ((ArffNominalAttribute)header.Attributes.ElementAt(tree.Parent.AttributeIndex).Type).Values[tree.ParentValue];
+                    localSB.Append($"<{header.Attributes.ElementAt(tree.Parent.AttributeIndex).Name}> equals to <{value}>");
+                    localSB.Append(" and ");
+                    tree = tree.Parent;
+                }
+                localSB.AppendLine();
+                localSB.AppendLine("---------------------------------------");
+
+                if (leaf.Class == 0)
+                {
+                    sb.Append(localSB.ToString());
+                    if (count > maxPositive)
                     {
-                        string value = tree.ParentValue == -1 ? "?" : ((ArffNominalAttribute)header.Attributes.ElementAt(tree.Parent.AttributeIndex).Type).Values[tree.ParentValue];
-                        sb.Append($"<{header.Attributes.ElementAt(tree.Parent.AttributeIndex).Name}> equals to <{value}>");
-                        sb.Append(" and ");
-                        tree = tree.Parent;
+                        maxPositive = count;
+                        sbMaxPositive = localSB;
+                        sbMaxPositive.AppendLine($"COUNT: {count}");
                     }
-                    sb.AppendLine();
-                    sb.AppendLine("---------------------------------------");
+                }
+                else
+                {
+                    if (count > maxNegative)
+                    {
+                        maxNegative = count;
+                        sbMaxNegative = localSB;
+                        sbMaxNegative.AppendLine($"COUNT: {count}");
+                    }
                 }
             }
             else
@@ -131,7 +164,7 @@ namespace HW1
                 foreach (KeyValuePair<int, Id3Node> kvp in tree.Children)
                 {
 
-                    PrintTreeAsRules(sb, kvp.Value, header);
+                    PrintTreeAsRules(sb, ref sbMaxPositive, ref sbMaxNegative, ref maxPositive, ref maxNegative, kvp.Value, header);
                 }
             }
         }
@@ -141,6 +174,24 @@ namespace HW1
             if (node == null) return 0;
             if (node.IsLeaf) return 1;
             return 1 + node.Children.Values.Select(n => GetCount(n)).Sum();
+        }
+
+        private static void PrintAsCsv(ArffHeader header, List<int[]> instances, string filePath)
+        {
+            using (StreamWriter sw = new StreamWriter(filePath))
+            {
+                sw.WriteLine(string.Join(",", header.Attributes.Select(a => a.Name)));
+                foreach (int[] instance in instances)
+                {
+                    sw.WriteLine(string.Join(",", instance.Select((valueIndex, attributeIndex) =>
+                    {
+                        return valueIndex >= 0
+                            ? ((ArffNominalAttribute)header.Attributes.ElementAt(attributeIndex).Type).Values[valueIndex]
+                            : "?";
+
+                    })));
+                }
+            }
         }
     }
 }
