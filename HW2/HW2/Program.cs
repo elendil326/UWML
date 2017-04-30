@@ -38,6 +38,7 @@ namespace HW2
                     string line = sr.ReadLine();
                     if (line == null) break;
 
+                    // Read training line
                     int[] ids = line.Split(',').Select(s => (int)double.Parse(s)).ToArray();
                     int movieId = ids[0];
                     int userId = ids[1];
@@ -72,6 +73,7 @@ namespace HW2
                 }
             }
 
+            // Calculate the mean of each user
             foreach (int userId in userVoteMap.Keys)
             {
                 userMeanMap[userId] = ((double)userVoteMap[userId]) / ((double)userVoteCountMap[userId]);
@@ -91,6 +93,7 @@ namespace HW2
                     string line = sr.ReadLine();
                     if (line == null) break;
 
+                    // Read test line
                     int[] ids = line.Split(',').Select(s => (int)double.Parse(s)).ToArray();
                     int movieId = ids[0];
                     int userA = ids[1];
@@ -101,6 +104,7 @@ namespace HW2
                     //    System.Diagnostics.Debugger.Break();
                     //}
 
+                    // Calculate the sum of the weights times the difference from the mean for all none-zero weighted users
                     double sum = 0;
                     object lockObj = new object();
                     ConcurrentDictionary<int, double> userWeightMap = new ConcurrentDictionary<int, double>();
@@ -131,13 +135,15 @@ namespace HW2
                     }
                     else
                     {
+                        // Normalize with k as the inverse of the sums of the abosulte weights
                         double k = 0;
                         foreach (int userId in userWeightMap.Keys)
                         {
-                            k += userWeightMap[userId];
+                            k += Math.Abs(userWeightMap[userId]);
                         }
                         k = 1 / k;
 
+                        // Get prediction
                         prediction = userMeanMap[userA] + (k * sum);
                     }
 
@@ -146,6 +152,7 @@ namespace HW2
                         System.Diagnostics.Debugger.Break();
                     }
 
+                    // Accumulate differences for error calculation
                     double diff = prediction - rating;
                     sumAbsoulteDifference += Math.Abs(diff);
                     sumSquaredDifference += diff * diff;
