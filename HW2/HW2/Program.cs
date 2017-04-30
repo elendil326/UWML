@@ -85,7 +85,9 @@ namespace HW2
                         double weight = GetWeight(userA, userI);
                         if (weight == 0) return;
 
-                        double userIValue = movieUserVoteMaps[movieId].ContainsKey(userI) ? movieUserVoteMaps[movieId][userI] : 0;
+                        // When userI hasn't evaluated the movie, we won't gain any value from assuming the mean in the sum, but the weight
+                        // will contribute in the normalizer K so other users do not change the prediction as much as they should.
+                        double userIValue = movieUserVoteMaps[movieId].ContainsKey(userI) ? movieUserVoteMaps[movieId][userI] : userMeanMap[userI];
 
                         double result = weight * (userIValue - userMeanMap[userI]);
                         lock (lockObj)
