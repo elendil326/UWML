@@ -28,8 +28,6 @@ namespace HW2
 
         static void Main(string[] args)
         {
-            
-
             // Load Training data
             using (StreamReader sr = new StreamReader(_pathToTrainingFile))
             {
@@ -44,40 +42,12 @@ namespace HW2
                     int userId = ids[1];
                     int rating = ids[2];
 
-                    if (!userVoteMap.ContainsKey(userId))
-                    {
-                        userVoteMap[userId] = 0;
-                    }
-                    userVoteMap[userId] += rating;
-
-                    if (!userVoteCountMap.ContainsKey(userId))
-                    {
-                        userVoteCountMap[userId] = 0;
-                    }
-                    userVoteCountMap[userId]++;
-
-                    if (!userMoviesRatedMap.ContainsKey(userId))
-                    {
-                        userMoviesRatedMap[userId] = new HashSet<int>();
-                    }
-                    userMoviesRatedMap[userId].Add(movieId);
-
-                    if (!movieUserVoteMaps.ContainsKey(movieId))
-                    {
-                        movieUserVoteMaps[movieId] = new Dictionary<int, int>();
-                    }
-                    if (!movieUserVoteMaps[movieId].ContainsKey(userId))
-                    {
-                        movieUserVoteMaps[movieId][userId] = rating;
-                    }
+                    UpdateData(movieId, userId, rating);
                 }
             }
 
             // Calculate the mean of each user
-            foreach (int userId in userVoteMap.Keys)
-            {
-                userMeanMap[userId] = ((double)userVoteMap[userId]) / ((double)userVoteCountMap[userId]);
-            }
+            CalculateMean();
 
             Console.WriteLine("Finished saving training data.");
 
@@ -157,11 +127,15 @@ namespace HW2
                     sumAbsoulteDifference += Math.Abs(diff);
                     sumSquaredDifference += diff * diff;
                     predictedCount++;
+
+                    // Keep learning from test data
+                    UpdateData(movieId, userA, rating);
+                    CalculateMean();
                 }
             }
 
             Console.WriteLine($"Mean absolute error: {sumAbsoulteDifference / predictedCount}");
-            Console.WriteLine($"Root mean sqared error: {Math.Sqrt(sumSquaredDifference / predictedCount)}");
+            Console.WriteLine($"Root mean squared error: {Math.Sqrt(sumSquaredDifference / predictedCount)}");
         }
 
         private static double GetWeight(int userA, int userI)
@@ -182,6 +156,44 @@ namespace HW2
             return sumSquaredDiffI == 0 || sumSquaredDiffA == 0
                 ? 0
                 : sumDiffATimesDiffI / Math.Sqrt(sumSquaredDiffA * sumSquaredDiffI);
+        }
+
+        private static void UpdateData(int movieId, int userId, int rating)
+        {
+            if (!userVoteMap.ContainsKey(userId))
+            {
+                userVoteMap[userId] = 0;
+            }
+            userVoteMap[userId] += rating;
+
+            if (!userVoteCountMap.ContainsKey(userId))
+            {
+                userVoteCountMap[userId] = 0;
+            }
+            userVoteCountMap[userId]++;
+
+            if (!userMoviesRatedMap.ContainsKey(userId))
+            {
+                userMoviesRatedMap[userId] = new HashSet<int>();
+            }
+            userMoviesRatedMap[userId].Add(movieId);
+
+            if (!movieUserVoteMaps.ContainsKey(movieId))
+            {
+                movieUserVoteMaps[movieId] = new Dictionary<int, int>();
+            }
+            if (!movieUserVoteMaps[movieId].ContainsKey(userId))
+            {
+                movieUserVoteMaps[movieId][userId] = rating;
+            }
+        }
+
+        private static void CalculateMean()
+        {
+            foreach (int userId in userVoteMap.Keys)
+            {
+                userMeanMap[userId] = ((double)userVoteMap[userId]) / ((double)userVoteCountMap[userId]);
+            }
         }
     }
 }
