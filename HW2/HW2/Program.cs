@@ -78,7 +78,7 @@ namespace HW2
                     double sum = 0;
                     object lockObj = new object();
                     ConcurrentDictionary<int, double> userWeightMap = new ConcurrentDictionary<int, double>();
-                    Parallel.ForEach(userMeanMap.Keys, userI =>
+                    Parallel.ForEach(movieUserVoteMaps[movieId].Keys, userI =>
                     {
                         if (userA == userI) return;
 
