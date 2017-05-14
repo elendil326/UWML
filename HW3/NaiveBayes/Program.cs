@@ -20,7 +20,7 @@ namespace NaiveBayes
 
         // Prior probability helpers.
         private const double WeightToPrior = 1;
-        private const double PriorHamProbability = 0.00001;
+        private const double PriorHamProbability = 0.5;
 
         // Ham or Spam constant
         private const string Ham = "ham";
@@ -92,6 +92,7 @@ namespace NaiveBayes
             // Accuracy counters
             double correctTests = 0;
             double totalTests = 0;
+            double spamCounter = 0;
 
             using (StreamReader sr = new StreamReader(TestDataFilePath))
             {
@@ -104,6 +105,10 @@ namespace NaiveBayes
                     if (parts.Length < 2) { throw new InvalidDataException($"The line read from the file does not conform to the format <ID Type word count word count ...>{Environment.NewLine}{line}"); }
 
                     bool isTrueHam = string.Equals(parts[1], Ham, StringComparison.OrdinalIgnoreCase);
+                    if (!isTrueHam)
+                    {
+                        spamCounter++;
+                    }
 
                     // The Naive Bayes is a multiplication of probabilities. Let's change it to sum of logs to avoid underflow. Since we are looking for the max, it doesn't matter.
                     double sumOfLogsForHam = 0;
@@ -146,7 +151,10 @@ namespace NaiveBayes
                 } while (true);
             }
 
-            return correctTests / totalTests;
+            // If we should predict all as spams, we will only have correctly guessed the true spams.
+            return predictAllAsSpam 
+                ? spamCounter / totalTests 
+                : correctTests / totalTests;
         }
     }
 }
