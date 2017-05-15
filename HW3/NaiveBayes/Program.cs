@@ -19,8 +19,8 @@ namespace NaiveBayes
         private static Dictionary<string, double> _wordHamProbabilityMap = new Dictionary<string, double>(StringComparer.Ordinal);
 
         // Prior probability helpers.
-        private const double WeightToPrior = 0.001;
-        private const double PriorHamProbability = 0.00001;
+        private const double WeightToPrior = 99;
+        private const double PriorHamProbability = 0.9999;
 
         // Ham or Spam constant
         private const string Ham = "ham";
@@ -28,6 +28,7 @@ namespace NaiveBayes
         // Global probability of being ham or spam
         private static double _hamCount = 0;
         private static double _totalExamples = 0;
+        private static double _globalHamProbability = 0;
 
         static void Main(string[] args)
         {
@@ -38,6 +39,9 @@ namespace NaiveBayes
             // Compare accuracy with that of predicting all as spam.
             double dummyAccuracy = Test(true);
             Console.WriteLine($"Total accuracy of dummy prediction is {dummyAccuracy}");
+
+            Console.WriteLine("Press ENTER to exit...");
+            Console.ReadLine();
         }
 
         private static void Train()
@@ -88,6 +92,9 @@ namespace NaiveBayes
                 // Calculate probability with prior
                 _wordHamProbabilityMap[word] = (hamCount + (WeightToPrior*PriorHamProbability)) / (_wordTotalCountMap[word] + WeightToPrior);
             }
+
+            // Probability of a doc being ham or not;
+            _globalHamProbability = _hamCount / _totalExamples;
         }
 
         /// <summary>
@@ -101,9 +108,6 @@ namespace NaiveBayes
             double correctTests = 0;
             double totalTests = 0;
             double spamCounter = 0;
-
-            // Global ham probability
-            double globalHamProbability = _hamCount / _totalExamples;
 
             using (StreamReader sr = new StreamReader(TestDataFilePath))
             {
@@ -151,7 +155,7 @@ namespace NaiveBayes
                         sumOfLogsForSpam += Math.Log(1 - hamProbability);
                     }
 
-                    bool isHam = Math.Log(globalHamProbability) + sumOfLogsForHam > Math.Log((1 - globalHamProbability)) + sumOfLogsForSpam;
+                    bool isHam = Math.Log(_globalHamProbability) + sumOfLogsForHam > Math.Log((1 - _globalHamProbability)) + sumOfLogsForSpam;
 
                     if (isHam == isTrueHam)
                     {
