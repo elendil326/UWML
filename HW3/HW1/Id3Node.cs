@@ -21,6 +21,8 @@ namespace HW1
 
         public int Class { get; set; }
 
+        public int Count { get { return GetCount(this); } }
+
         private Id3Node() { }
 
         public static Id3Node BuildTree(List<int[]> instances, int classAttributeIndex)
@@ -290,6 +292,13 @@ namespace HW1
             {
                 Class = maxClassCount
             };
+        }
+
+        private static int GetCount(Id3Node node)
+        {
+            if (node == null) return 0;
+            if (node.IsLeaf) return 1;
+            return 1 + node.Children.Values.Select(n => GetCount(n)).Sum();
         }
     }
 }

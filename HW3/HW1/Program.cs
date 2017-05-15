@@ -10,18 +10,22 @@ namespace HW1
 {
     class Program
     {
-        private static string _arffFile = @".\DataSetFiles\training_subsetD.arff";
+        private static string _trainingArffFile = @"c:\Data\training_subsetD.arff";
 
-        private static string _testArffFile = @".\DataSetFiles\testingD.arff";
+        private static string _testArffFile = @"c:\Data\testingD.arff";
 
         private static string _outputFolder = @"c:\Test";
+
+        private static string _pathToOutputCsv = @"c:\users\andresz\desktop\data.csv";
+
+        private static int _classIndex = 274;
 
         static void Main(string[] args)
         {
             // Training
             ArffHeader header = null;
             List<object[]> instances = new List<object[]>();
-            using (ArffReader arffReader = new ArffReader(_arffFile))
+            using (ArffReader arffReader = new ArffReader(_trainingArffFile))
             {
                 header = arffReader.ReadHeader();
                 object[] instance;
@@ -61,18 +65,18 @@ namespace HW1
                 0.9999
             };
 
-            PrintAsCsv(header, trainingData, @"c:\users\andresz\desktop\data.csv");
+            PrintAsCsv(header, trainingData, _pathToOutputCsv);
 
             Parallel.ForEach(confidences, confidence =>
             {
-                Id3Node tree = Id3Node.BuildTree(trainingData, trainingData[0].Length - 1, confidence);
+                Id3Classifier classifier = new Id3Classifier(trainingData, _classIndex, confidence);
 
-                Console.WriteLine($"Confidence {confidence}: Num of nodes {GetCount(tree)}");
+                Console.WriteLine($"Confidence {confidence}: Num of nodes {classifier.Tree.Count}");
                 // Test accuracy on training
-                Console.WriteLine($"Confidence {confidence}: Accuracy on train = { trainingData.Where(instance => GetClass(instance, tree) == instance[trainingData[0].Length - 1]).Count() / (double)trainingData.Count}");
+                Console.WriteLine($"Confidence {confidence}: Accuracy on train = { trainingData.Where(instance => classifier.GetClass(instance) == instance[_classIndex]).Count() / (double)trainingData.Count}");
 
                 // Test accuracy on test
-                Console.WriteLine($"Confidence {confidence}: Accuracy on test = { testData.Where(instance => GetClass(instance, tree) == instance[testData[0].Length - 1]).Count() / (double)testData.Count}");
+                Console.WriteLine($"Confidence {confidence}: Accuracy on test = { testData.Where(instance => classifier.GetClass(instance) == instance[_classIndex]).Count() / (double)testData.Count}");
 
                 StringBuilder sb = new StringBuilder();
                 StringBuilder sbMaxPositive = new StringBuilder();
@@ -82,7 +86,7 @@ namespace HW1
                 // Only print small trees.
                 if (confidence > 0.5)
                 {
-                    PrintTreeAsRules(sb, ref sbMaxPositive, ref sbMaxNegative, ref maxPositive, ref maxNegative, tree, header);
+                    PrintTreeAsRules(sb, ref sbMaxPositive, ref sbMaxNegative, ref maxPositive, ref maxNegative, classifier.Tree, header);
                     sb.AppendLine("The most max positive rule is:");
                     sb.AppendLine(sbMaxPositive.ToString());
                     sb.AppendLine();
@@ -92,6 +96,9 @@ namespace HW1
                     File.WriteAllText(Path.Combine(_outputFolder, $"Tree{confidence}.txt"), sb.ToString());
                 }
             });
+
+            Console.WriteLine("Press ENTER to exit...");
+            Console.ReadLine();
         }
 
         private static int GetClass(int[] instance, Id3Node tree)
