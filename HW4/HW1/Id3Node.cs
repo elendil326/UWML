@@ -32,8 +32,18 @@ namespace HW1
 
         public static Id3Node BuildTree(List<int[]> instances, int classAttributeIndex, double confidence)
         {
+            return BuildTree(instances, classAttributeIndex, confidence, int.MaxValue);
+        }
+
+        public static Id3Node BuildTree(List<int[]> instances, int classAttributeIndex, double confidence, int maxDepth)
+        {
             bool[] visitedAttributes = new bool[instances.First().Length];
-            return BuildTree(instances, classAttributeIndex, confidence, visitedAttributes);
+            return BuildTree(instances, classAttributeIndex, confidence, visitedAttributes, maxDepth);
+        }
+
+        public static Id3Node BuildTree(List<int[]> instances, int classAttributeIndex, double confidence, bool[] visitedAttributes)
+        {
+            return BuildTree(instances, classAttributeIndex, confidence, visitedAttributes, int.MaxValue);
         }
 
         /// <summary>
@@ -43,9 +53,13 @@ namespace HW1
         /// <param name="classAttributeIndex">The index of the class attribute.</param>
         /// <param name="confidence">The confidence threshold for split stop.</param>
         /// <param name="visitedAttributes">Flag array to keep track of which attributes have already been visited so far.</param>
+        /// <param name="maxDepth">The maximum depth of the tree.</param>
         /// <returns>The trained tree for the given list of instances and confidence threshold</returns>
-        public static Id3Node BuildTree(List<int[]> instances, int classAttributeIndex, double confidence, bool[] visitedAttributes)
+        public static Id3Node BuildTree(List<int[]> instances, int classAttributeIndex, double confidence, bool[] visitedAttributes, int maxDepth)
         {
+            if (maxDepth == 0) { return null; }
+            if (maxDepth == 1) { return GetClassNodeForMax(instances, classAttributeIndex); }
+
             // If all instances are of the same class.
             int classType = instances[0][classAttributeIndex];
             if (instances.All(i => i[classAttributeIndex] == classType))
@@ -89,7 +103,7 @@ namespace HW1
 
             foreach (int attributeValue in bestNode.ValueClassCounts.Keys)
             {
-                bestNode.Children[attributeValue] = BuildTree(instances.Where(i => i[bestNode.AttributeIndex] == attributeValue).ToList(), classAttributeIndex, confidence, localVisitedAttributes);
+                bestNode.Children[attributeValue] = BuildTree(instances.Where(i => i[bestNode.AttributeIndex] == attributeValue).ToList(), classAttributeIndex, confidence, localVisitedAttributes, maxDepth - 1);
                 bestNode.Children[attributeValue].Parent = bestNode;
                 bestNode.Children[attributeValue].ParentValue = attributeValue;
             }

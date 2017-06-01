@@ -11,8 +11,26 @@ namespace BiasAndVarianceOfID3
     {
         private const string DataCsv = @"c:\Data\dataset_default.csv";
 
+        private static List<int> _continuesIndexes = new List<int>
+            {
+                1, // Amount of the given credit (NT dollar)
+                5, // Age
+                12, // 12 - 17 Amount of bill statement (NT dollar)
+                13,
+                14,
+                15,
+                16,
+                17,
+                18, // 18 - 23 Amount of previous payment (NT dollar)
+                19,
+                20,
+                21,
+                22,
+                23
+            };
+
         // Calculated with external tool
-        private Dictionary<int, int> _indexElbowMap = new Dictionary<int, int>
+        private static Dictionary<int, int> _indexElbowMap = new Dictionary<int, int>
         {
             { 1, 3 },
             { 5, 3 },
@@ -32,34 +50,17 @@ namespace BiasAndVarianceOfID3
 
         static void Main(string[] args)
         {
-            DataWrangler dataWrangler = DataWrangler.Load(DataCsv);
+            DataWrangler dataWrangler = DataWrangler.Load(DataCsv, _indexElbowMap);
 
-            // Print columns for calculating elbows in external tool
-            // This is used to check the elbows in an external tool.
-            List<int> continuesIndexes = new List<int>
-            {
-                1, // Amount of the given credit (NT dollar)
-                5, // Age
-                12, // 12 - 17 Amount of bill statement (NT dollar)
-                13,
-                14,
-                15,
-                16,
-                17,
-                18, // 18 - 23 Amount of previous payment (NT dollar)
-                19,
-                20,
-                21,
-                22,
-                23
-            };
-            foreach (int i in continuesIndexes)
-            {
-                using (StreamWriter sw = new StreamWriter($"{i}.txt"))
-                {
-                    sw.WriteLine(string.Join(",", dataWrangler.Data.Select(array => array[i])));
-                }
-            }
+            //DataWrangler dataWrangler = DataWrangler.Load(DataCsv);
+            // Print continuous columns for calculating elbows in external tool (https://bl.ocks.org/rpgove/0060ff3b656618e9136b)
+            //foreach (int i in _continuesIndexes)
+            //{
+            //    using (StreamWriter sw = new StreamWriter($"{i}.txt"))
+            //    {
+            //        sw.WriteLine(string.Join(",", dataWrangler.TrainData.Select(array => array[i])));
+            //    }
+            //}
 
 
 

@@ -86,20 +86,12 @@ namespace EnsembleMethods
                 // Calculate different sample accuracies in parallel.
                 Parallel.ForEach(sampleTrainingAccuraciesMap.Keys, numOfSamples =>
                 {
-                    List<Id3Classifier> classifiers = new List<Id3Classifier>();
-                    Sampler sampler = new Sampler(trainingData, numOfSamples);
-
-                    for (int i = 0; i < numOfSamples; i++)
-                    {
-                        Id3Classifier classifier = new Id3Classifier(sampler.Samples[i], ClassIndex, Confidence);
-                        classifiers.Add(classifier);
-                    }
+                    Id3Bagger bagger = new Id3Bagger(numOfSamples);
+                    bagger.Train(trainingData, ClassIndex, Confidence);
 
                     // Evaluate training and test to look out for overfitting.
-                    sampleTrainingAccuraciesMap[numOfSamples] = Evaluate(trainingData, classifiers);
-                    sampleTestAccuraciesMap[numOfSamples] = Evaluate(testData, classifiers);
-
-                    
+                    sampleTrainingAccuraciesMap[numOfSamples] = Evaluate(trainingData, bagger);
+                    sampleTestAccuraciesMap[numOfSamples] = Evaluate(testData, bagger);
                 });
 
                 lock(_lockConsole)
@@ -115,18 +107,15 @@ namespace EnsembleMethods
             Console.ReadLine();
         }
 
-        private static double Evaluate(List<int[]> instances, List<Id3Classifier> classifiers)
+        private static double Evaluate(List<int[]> instances, Id3Bagger bagger)
         {
             // Accuracy helpers
             double totalExamples = instances.Count;
             double correctAnswers = 0;
 
-            double classifiersMajority = classifiers.Count / (double)2;
-
             foreach (int[] instance in instances)
             {
-                // If the majority of the classifiers scored the correct answer, increase counter for correct answers.
-                if (classifiers.Select(c => c.GetClass(instance)).Count(c => c == instance[ClassIndex]) >= classifiersMajority)
+                if (bagger.GetClass(instance) == instance[ClassIndex])
                 {
                     correctAnswers++;
                 }

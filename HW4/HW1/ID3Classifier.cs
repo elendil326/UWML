@@ -14,7 +14,17 @@ namespace HW1
 
         public Id3Node Tree { get; }
 
+        public int MaxDepth { get; }
+
+        public Id3Classifier(List<int[]> instances, int classIndex)
+            : this(instances, classIndex, 0, int.MaxValue)
+        { }
+
         public Id3Classifier(List<int[]> instances, int classIndex, double confidence)
+            :this(instances, classIndex, confidence, int.MaxValue)
+        { }
+
+        public Id3Classifier(List<int[]> instances, int classIndex, double confidence, int maxDepth)
         {
             Instances = instances;
             Confidence = confidence;
