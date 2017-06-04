@@ -74,6 +74,16 @@
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EnsembleMethods\EnsembleMethods.csproj">
+      <Project>{43eb0f71-dabe-4182-986f-ccbe1b4ca183}</Project>
+      <Name>EnsembleMethods</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\HW1\HW1.csproj">
+      <Project>{c32747d7-87fb-4255-9c17-16d190d8196b}</Project>
+      <Name>HW1</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Accord.3.5.0\build\Accord.targets" Condition="Exists('..\packages\Accord.3.5.0\build\Accord.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

@@ -8,38 +8,18 @@ using System.Threading.Tasks;
 
 namespace BiasAndVarianceOfID3
 {
-    public class DataWrangler
-    {
-        private List<double[]> _data = new List<double[]>();
-
-        private List<double[]> _testData = new List<double[]>();
-
-        private List<double[]> _trainData = new List<double[]>();
-
-        public IReadOnlyCollection<double[]> Data { get { return _data; } }
-
-        public IReadOnlyCollection<double[]> TestData { get { return _testData; } }
-
-        public IReadOnlyCollection<double[]> TrainData { get { return _trainData; } }
-
-        private DataWrangler() { }
-
-        public static DataWrangler Load(string filePath)
+    public static class DataWrangler
+    { 
+        public static async Task<List<double[]>> LoadContinuousDataAsync(string filePath)
         {
-            return Load(filePath, null);
-        }
-
-        public static DataWrangler Load(string filePath, IDictionary<int, int> continuesIndexKMap)
-        {
-            DataWrangler dataWrangler = new DataWrangler();
-
             // Read file
             int lineCounter = 0;
+            List<double[]> data = new List<double[]>();
             using (StreamReader sr = new StreamReader(filePath))
             {
                 do
                 {
-                    string line = sr.ReadLine();
+                    string line = await sr.ReadLineAsync();
                     if (line == null) break;
 
                     // First two lines are column names.
@@ -47,29 +27,26 @@ namespace BiasAndVarianceOfID3
                     if (lineCounter < 3) continue;
 
                     string[] parts = line.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-                    dataWrangler._data.Add(parts.Select(s => double.Parse(s)).ToArray());
+                    data.Add(parts.Select(s => double.Parse(s)).ToArray());
                 } while (true);
             }
 
-            if (continuesIndexKMap != null)
-            {
-                dataWrangler.ConvertContinuesToDiscrete(continuesIndexKMap);
-            }
-
-            SplitData(10, dataWrangler._data, out dataWrangler._trainData, out dataWrangler._testData);
-
-            return dataWrangler;
+            return data;
         }
 
-        private void ConvertContinuesToDiscrete(IDictionary<int, int> continuesIndexKMap)
+        public static Dictionary<int, GaussianClusterCollection> GetIndexClustersMap(List<double[]> continuousData, IDictionary<int, int> continuesIndexKMap)
         {
+            Dictionary<int, GaussianClusterCollection> indexClusterMap = new Dictionary<int, GaussianClusterCollection>();
+
+            Accord.Math.Random.Generator.Seed = 0;
+
             foreach (int i in continuesIndexKMap.Keys)
             {
                 // Prepare data to be analyzed in the KMeans algorithm
-                double[][] data = new double[_data.Count][];
-                for (int j = 0; j < _data.Count; j++)
+                double[][] data = new double[continuousData.Count][];
+                for (int j = 0; j < continuousData.Count; j++)
                 {
-                    data[j] = new[] { _data[j][i] };
+                    data[j] = new[] { continuousData[j][i] };
                 }
 
                 // Grab k from optimum map.
@@ -78,41 +55,27 @@ namespace BiasAndVarianceOfID3
 
                 var cluster = kMeans.Learn(data);
 
-                for (int j = 0; j < _data.Count; j++)
-                {
-                    _data[j][i] = cluster.Decide(new[] { _data[j][i] });
-                }
+                // Learn gaussian  mixture model based on k-model
+                GaussianMixtureModel gaussianMixtureModel = new GaussianMixtureModel(kMeans);
+                indexClusterMap[i] = gaussianMixtureModel.Learn(data);
             }
+
+            return indexClusterMap;
         }
 
-        private static void SplitData(int testDataPercentage, List<double[]> data, out List<double[]> testData, out List<double[]> trainData)
+        public static List<int[]> ConvertContinuesToDiscrete(List<double[]> continuousData, Dictionary<int, GaussianClusterCollection> indexClusterMap)
         {
-            testData = new List<double[]>();
-            trainData = new List<double[]>();
+            List<int[]> discreteData = new List<int[]>(continuousData.Select(dArray => dArray.Select(d => (int)d).ToArray()));
 
-            int testDataCount = (data.Count * testDataPercentage) / 100;
-            Random r = new Random();
-            int limit = data.Count - 1;
-            while (testDataCount > 0)
+            for(int i = 0; i < continuousData.Count; i++)
             {
-                int randomIndex = r.Next(0, limit);
-
-                double[] temp = data[limit];
-                data[limit] = data[randomIndex];
-                data[randomIndex] = temp;
-
-                testDataCount--;
-                limit--;
+                foreach (int j in indexClusterMap.Keys)
+                {
+                    discreteData[i][j] = indexClusterMap[j].Decide(new[] { continuousData[i][j] });
+                }
             }
 
-            for (int i = 0; i < limit; i ++)
-            {
-                trainData.Add(data[i]);
-            }
-            for (int i = limit; i < data.Count; i++)
-            {
-                testData.Add(data[i]);
-            }
+            return discreteData;
         }
     }
 }

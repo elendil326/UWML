@@ -8,8 +8,6 @@ namespace HW1
 {
     public class Id3Classifier
     {
-        public List<int[]> Instances { get; } = new List<int[]>();
-
         public double Confidence { get; }
 
         public Id3Node Tree { get; }
@@ -26,10 +24,9 @@ namespace HW1
 
         public Id3Classifier(List<int[]> instances, int classIndex, double confidence, int maxDepth)
         {
-            Instances = instances;
             Confidence = confidence;
 
-            Tree = Id3Node.BuildTree(instances, classIndex, confidence);
+            Tree = Id3Node.BuildTree(instances, classIndex, confidence, maxDepth);
         }
 
         public int GetClass(int[] instance)
@@ -61,7 +58,5 @@ namespace HW1
 
             return GetClass(instance, tree.Children[valueIndex]);
         }
-
-        
     }
 }

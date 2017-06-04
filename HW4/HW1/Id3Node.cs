@@ -57,8 +57,7 @@ namespace HW1
         /// <returns>The trained tree for the given list of instances and confidence threshold</returns>
         public static Id3Node BuildTree(List<int[]> instances, int classAttributeIndex, double confidence, bool[] visitedAttributes, int maxDepth)
         {
-            if (maxDepth == 0) { return null; }
-            if (maxDepth == 1) { return GetClassNodeForMax(instances, classAttributeIndex); }
+            if (maxDepth == 0) { return GetClassNodeForMax(instances, classAttributeIndex); }
 
             // If all instances are of the same class.
             int classType = instances[0][classAttributeIndex];

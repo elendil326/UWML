@@ -3,14 +3,12 @@ using System.Collections.Generic;
 
 namespace EnsembleMethods
 {
-    public class Sampler
+    public static class Sampler
     {
-        public List<List<int[]>> Samples { get; } = new List<List<int[]>>();
-
-        public Sampler(List<int[]> instances, int numOfSamples)
+        public static List<List<int[]>>  SampleData(List<int[]> instances, int numOfSamples)
         {
             Random r = new Random();
-
+            List<List<int[]>> samples = new List<List<int[]>>();
             for (int i = 0; i < numOfSamples; i++)
             {
                 List<int[]> sample = new List<int[]>();
@@ -22,8 +20,10 @@ namespace EnsembleMethods
                 }
 
                 // Store newly created sample.
-                Samples.Add(sample);
+                samples.Add(sample);
             }
+
+            return samples;
         }
     }
 }

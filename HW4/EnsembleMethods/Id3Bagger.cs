@@ -13,8 +13,6 @@ namespace EnsembleMethods
 
         private List<Id3Classifier> Classifiers { get; set; } = new List<Id3Classifier>();
 
-        private Sampler Sampler { get; set; }
-
         public Id3Bagger(int numberOfSamples)
         {
             NumberOfSamples = numberOfSamples;
@@ -28,11 +26,11 @@ namespace EnsembleMethods
         public void Train(List<int[]> trainingData, int classIndex, double confidence, int maxDepth)
         {
             Classifiers = new List<Id3Classifier>();
-            Sampler = new Sampler(trainingData, NumberOfSamples);
+            List<List<int[]>> samples = Sampler.SampleData(trainingData, NumberOfSamples);
 
             for (int i = 0; i < NumberOfSamples; i++)
             {
-                Id3Classifier classifier = new Id3Classifier(Sampler.Samples[i], classIndex, confidence, maxDepth);
+                Id3Classifier classifier = new Id3Classifier(samples[i], classIndex, confidence, maxDepth);
                 Classifiers.Add(classifier);
             }
         }
