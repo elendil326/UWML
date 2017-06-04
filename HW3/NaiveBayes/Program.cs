@@ -17,18 +17,24 @@ namespace NaiveBayes
         private static Dictionary<string, double> _wordTotalCountMap = new Dictionary<string, double>(StringComparer.Ordinal);
         private static Dictionary<string, double> _wordHamCountMap = new Dictionary<string, double>(StringComparer.Ordinal);
         private static Dictionary<string, double> _wordHamProbabilityMap = new Dictionary<string, double>(StringComparer.Ordinal);
+        private static Dictionary<string, double> _wordSpamCountMap = new Dictionary<string, double>(StringComparer.Ordinal);
+        private static Dictionary<string, double> _wordSpamProbabilityMap = new Dictionary<string, double>(StringComparer.Ordinal);
 
         // Prior probability helpers.
-        private const double WeightToPrior = 99;
-        private const double PriorHamProbability = 0.9999;
+        private const double HamWeightToPrior = 1;
+        private const double PriorHamProbability = 0.15;
+        private const double SpamWeightToPrior = 1;
+        private const double PriorSpamProbability = 0.85;
 
         // Ham or Spam constant
         private const string Ham = "ham";
 
         // Global probability of being ham or spam
         private static double _hamCount = 0;
+        private static double _spamCount = 0;
         private static double _totalExamples = 0;
         private static double _globalHamProbability = 0;
+        private static double _globalSpamProbability = 0;
 
         static void Main(string[] args)
         {
@@ -72,6 +78,16 @@ namespace NaiveBayes
                             }
                             _wordHamCountMap[word] += count;
                         }
+                        else
+                        {
+                            _spamCount++;
+
+                            if (!_wordSpamCountMap.ContainsKey(word))
+                            {
+                                _wordSpamCountMap[word] = 0;
+                            }
+                            _wordSpamCountMap[word] += count;
+                        }
 
                         if (!_wordTotalCountMap.ContainsKey(word))
                         {
@@ -86,15 +102,21 @@ namespace NaiveBayes
 
             foreach (string word in _wordTotalCountMap.Keys)
             {
-                // Take how many times this word was in a ham mail. If never, default to cero.
+                // Take how many times this word was in a ham mail. If never, default to zero.
                 double hamCount = _wordHamCountMap.ContainsKey(word) ? _wordHamCountMap[word] : 0;
 
+                // Take how many times tihs word was in spam mail. If never, default to zero.
+                double spamCount = _wordSpamCountMap.ContainsKey(word) ? _wordSpamCountMap[word] : 0;
+
                 // Calculate probability with prior
-                _wordHamProbabilityMap[word] = (hamCount + (WeightToPrior*PriorHamProbability)) / (_wordTotalCountMap[word] + WeightToPrior);
+                _wordHamProbabilityMap[word] = (hamCount + (HamWeightToPrior * PriorHamProbability)) / (_wordTotalCountMap[word] + HamWeightToPrior);
+                _wordSpamProbabilityMap[word] = (spamCount + (SpamWeightToPrior * PriorSpamProbability)) / (_wordTotalCountMap[word] + SpamWeightToPrior);
             }
 
             // Probability of a doc being ham or not;
             _globalHamProbability = _hamCount / _totalExamples;
+            // Probability of a doc being spam or not;
+            _globalSpamProbability = _spamCount / _totalExamples;
         }
 
         /// <summary>
@@ -135,6 +157,7 @@ namespace NaiveBayes
                         int count = int.Parse(parts[i]);
 
                         double hamProbability = 0;
+                        double spamProbability = 0;
 
                         // If we haven't seen a word before, default to the prior probability.
                         if (!_wordHamProbabilityMap.ContainsKey(word))
@@ -146,16 +169,29 @@ namespace NaiveBayes
                             hamProbability = _wordHamProbabilityMap[word];
                         }
 
+                        if (!_wordSpamProbabilityMap.ContainsKey(word))
+                        {
+                            spamProbability = PriorSpamProbability;
+                        }
+                        else
+                        {
+                            spamProbability = _wordSpamProbabilityMap[word];
+                        }
+
                         if (hamProbability <= 0 || hamProbability >= 1)
                         {
                             throw new InvalidOperationException($"Word '{word}' has a ham probability of {hamProbability} which is invalid.");
                         }
+                        if (spamProbability <= 0 || spamProbability >= 1)
+                        {
+                            throw new InvalidOperationException($"Word '{word}' has a ham probability of {spamProbability} which is invalid.");
+                        }
 
                         sumOfLogsForHam += Math.Log(hamProbability);
-                        sumOfLogsForSpam += Math.Log(1 - hamProbability);
+                        sumOfLogsForSpam += Math.Log(spamProbability);
                     }
 
-                    bool isHam = Math.Log(_globalHamProbability) + sumOfLogsForHam > Math.Log((1 - _globalHamProbability)) + sumOfLogsForSpam;
+                    bool isHam = Math.Log(_globalHamProbability) + sumOfLogsForHam > Math.Log((_globalSpamProbability)) + sumOfLogsForSpam;
 
                     if (isHam == isTrueHam)
                     {
@@ -167,8 +203,8 @@ namespace NaiveBayes
             }
 
             // If we should predict all as spams, we will only have correctly guessed the true spams.
-            return predictAllAsSpam 
-                ? spamCounter / totalTests 
+            return predictAllAsSpam
+                ? spamCounter / totalTests
                 : correctTests / totalTests;
         }
     }
