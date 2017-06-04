@@ -39,24 +39,11 @@ namespace HW1
             if (tree.IsLeaf) return tree.Class;
 
             int valueIndex = instance[tree.AttributeIndex];
-            if (!tree.Children.ContainsKey(valueIndex))
-            {
-                Id3Node maxChild = null;
-                int maxCount = int.MinValue;
-                foreach (Id3Node child in tree.Children.Values)
-                {
-                    int count = child.ValueClassCounts.Values.SelectMany(kvp => kvp.Values).Sum();
-                    if (count > maxCount)
-                    {
-                        maxCount = count;
-                        maxChild = child;
-                    }
-                }
+            Id3Node child = tree.Children.ContainsKey(valueIndex)
+                ? tree.Children[valueIndex]
+                : tree.MaxChild;
 
-                return GetClass(instance, maxChild);
-            }
-
-            return GetClass(instance, tree.Children[valueIndex]);
+            return GetClass(instance, child);
         }
     }
 }

@@ -10,7 +10,7 @@ namespace BiasAndVarianceOfID3
 {
     public static class DataWrangler
     { 
-        public static async Task<List<double[]>> LoadContinuousDataAsync(string filePath)
+        public static async Task<List<double[]>> LoadContinuousDataAsync(string filePath, HashSet<int> indexToIgnore)
         {
             // Read file
             int lineCounter = 0;
@@ -27,7 +27,7 @@ namespace BiasAndVarianceOfID3
                     if (lineCounter < 3) continue;
 
                     string[] parts = line.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-                    data.Add(parts.Select(s => double.Parse(s)).ToArray());
+                    data.Add(parts.Where((s, i) => !indexToIgnore.Contains(i)).Select(s => double.Parse(s)).ToArray());
                 } while (true);
             }
 

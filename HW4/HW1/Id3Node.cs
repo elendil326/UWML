@@ -7,9 +7,13 @@ namespace HW1
 {
     public class Id3Node
     {
+        private Lazy<Id3Node> _maxChild;
+
+        private Lazy<int> _count;
+
         public int AttributeIndex { get; private set; } = -1;
 
-        public Dictionary<int, Dictionary<int, int>> ValueClassCounts { get; } = new Dictionary<int, Dictionary<int, int>>();
+        public Dictionary<int, Dictionary<int, int>> ValueClassCounts { get; private set; } = new Dictionary<int, Dictionary<int, int>>();
 
         public Id3Node Parent { get; private set; }
 
@@ -21,9 +25,33 @@ namespace HW1
 
         public int Class { get; set; }
 
-        public int Count { get { return GetCount(this); } }
+        public int Count { get { return _count.Value; } }
 
-        private Id3Node() { }
+        public Id3Node MaxChild { get { return _maxChild.Value; } }
+
+        private Id3Node()
+        {
+            _maxChild = new Lazy<Id3Node>(() =>
+            {
+                Id3Node maxChild = null;
+                int maxCount = int.MinValue;
+                foreach (Id3Node child in Children.Values)
+                {
+                    int count = child.ValueClassCounts.Values.SelectMany(kvp => kvp.Values).Sum();
+                    if (count > maxCount)
+                    {
+                        maxCount = count;
+                        maxChild = child;
+                    }
+                }
+
+                return maxChild;
+            });
+            _count = new Lazy<int>(() =>
+            {
+                return GetCount(this);
+            });
+        }
 
         public static Id3Node BuildTree(List<int[]> instances, int classAttributeIndex)
         {
@@ -38,7 +66,8 @@ namespace HW1
         public static Id3Node BuildTree(List<int[]> instances, int classAttributeIndex, double confidence, int maxDepth)
         {
             bool[] visitedAttributes = new bool[instances.First().Length];
-            return BuildTree(instances, classAttributeIndex, confidence, visitedAttributes, maxDepth);
+            Id3Node node = BuildTree(instances, classAttributeIndex, confidence, visitedAttributes, maxDepth);
+            return node;
         }
 
         public static Id3Node BuildTree(List<int[]> instances, int classAttributeIndex, double confidence, bool[] visitedAttributes)
