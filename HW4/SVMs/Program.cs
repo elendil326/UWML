@@ -121,16 +121,16 @@ namespace SVMs
             // Get accuracies for base comparison
             // DON'T DO PARALLEL. We don't know if the underlying implementation is MT safe or not.
             //Parallel.ForEach(nameKernelMap.Keys, (kernelName) =>
-            //foreach(string kernelName in nameKernelMap.Keys)
-            //{
-            //    Console.WriteLine($"{kernelName}: {GetSVMAccuracy(problem, test, nameKernelMap[kernelName], c)}");
-            //};
+            foreach (string kernelName in nameKernelMap.Keys)
+            {
+                Console.WriteLine($"{kernelName}: {GetSVMAccuracy(problem, test, nameKernelMap[kernelName], c)}");
+            };
 
             // Get accuracy of with Naive Bayes
-            //double[] classWeightPrior = new[] { 1.0, 1.0 };
-            //double[] classPriorProbability = new[] { 0.5, 0.5 };
-            //NaiveBayesClassifier naiveBayes = NaiveBayesClassifier.Load(discreteTrainData, SVMSupportedClassIndex, classWeightPrior, classPriorProbability);
-            //Console.WriteLine($"Naive Bayes: {naiveBayes.GetPredictionAccuracy(discreteTestData, SVMSupportedClassIndex)}");
+            double[] classWeightPrior = new[] { 1.0, 1.0 };
+            double[] classPriorProbability = new[] { 0.5, 0.5 };
+            NaiveBayesClassifier naiveBayes = NaiveBayesClassifier.Load(discreteTrainData, SVMSupportedClassIndex, classWeightPrior, classPriorProbability);
+            Console.WriteLine($"Naive Bayes: {naiveBayes.GetPredictionAccuracy(discreteTestData, SVMSupportedClassIndex)}");
 
             // Calculate SVMs Bias and Variance
             List<List<int[]>> samples = Sampler.SampleData(discreteTrainData, BiasVarianceNumOfSamples);
