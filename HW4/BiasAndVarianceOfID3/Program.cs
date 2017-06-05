@@ -153,8 +153,8 @@ namespace BiasAndVarianceOfID3
                 };
 
                 // Calculate bias and variance for each classifier and store it.
-                id3BaggerClassifierResult.GetOrAdd(maxDepth, GetBiasVarianceAccuracy(discreteTestData, id3BaggerInstanceClassifierPredictionMappings));
-                id3ClassifierResult.GetOrAdd(maxDepth, GetBiasVarianceAccuracy(discreteTestData, id3ClassifierInstanceClassifierPredictionMappings));
+                id3BaggerClassifierResult.GetOrAdd(maxDepth, BiasVarianceHelper.GetBiasVarianceAccuracy(discreteTestData, ClassIndex, id3BaggerInstanceClassifierPredictionMappings));
+                id3ClassifierResult.GetOrAdd(maxDepth, BiasVarianceHelper.GetBiasVarianceAccuracy(discreteTestData, ClassIndex, id3ClassifierInstanceClassifierPredictionMappings));
             });
 
             Console.WriteLine("Id3 Classifier");
@@ -177,54 +177,6 @@ namespace BiasAndVarianceOfID3
 
             Console.WriteLine("Press ENTER to exit...");
             Console.ReadLine();
-        }
-
-        public static Tuple<double, double, double> GetBiasVarianceAccuracy(List<int[]> instances, IDictionary<int, ConcurrentDictionary<int, int>> instanceClassifierPredictionMappings)
-        {
-            double loss = 0;
-            double bias = 0;
-            double accuracy = 0;
-
-            for (int i = 0; i < instances.Count; i++)
-            {
-                Tuple<double, double, double> lossBiasAccuracy = GetLossBiasAccuracy(instances[i], instanceClassifierPredictionMappings[i]);
-                loss += lossBiasAccuracy.Item1;
-                bias += lossBiasAccuracy.Item2;
-                accuracy += lossBiasAccuracy.Item3;
-            }
-
-            loss /= instances.Count;
-            bias /= instances.Count;
-            accuracy /= instances.Count;
-
-            return new Tuple<double, double, double>(bias, loss - bias, accuracy);
-        }
-
-        public static Tuple<double, double, double> GetLossBiasAccuracy(int[] instance, IDictionary<int, int> classifierPredictionMapping)
-        {
-            double loss = 0;
-            double bias = 0;
-            double accuracy = 0;
-            int[] classCounter = { 0, 0 };
-
-            // Count 
-            for (int i = 0; i < BiasVarianceNumOfSamples; i++)
-            {
-                classCounter[classifierPredictionMapping[i]]++;
-                if (instance[ClassIndex] == classifierPredictionMapping[i])
-                {
-                    accuracy++;
-                }
-            }
-
-            int predictedModeClass = classCounter[0] > classCounter[1] ? 0 : 1 ;
-            int realClassCount = classCounter[instance[ClassIndex]];
-
-            loss = 1.0 - (realClassCount / BiasVarianceNumOfSamples);
-            bias = predictedModeClass != instance[ClassIndex] ? 1 : 0;
-            accuracy /= BiasVarianceNumOfSamples;
-
-            return new Tuple<double, double, double>(loss, bias, accuracy);
         }
     }
 }

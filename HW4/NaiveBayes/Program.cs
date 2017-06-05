@@ -105,7 +105,7 @@ namespace NaiveBayes
                 // Take how many times this word was in a ham mail. If never, default to zero.
                 double hamCount = _wordHamCountMap.ContainsKey(word) ? _wordHamCountMap[word] : 0;
 
-                // Take how many times tihs word was in spam mail. If never, default to zero.
+                // Take how many times this word was in spam mail. If never, default to zero.
                 double spamCount = _wordSpamCountMap.ContainsKey(word) ? _wordSpamCountMap[word] : 0;
 
                 // Calculate probability with prior

@@ -1,10 +1,12 @@
 ﻿using Accord.MachineLearning;
 using BiasAndVarianceOfID3;
 using EnsembleMethods;
+using NaiveBayes;
 using libsvm;
 using System.IO;
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,7 +21,9 @@ namespace SVMs
 
         private const int BiasVarianceNumOfSamples = 30;
 
-        private const int ClassIndex = 23;
+        private const int OriginalClassIndex = 23;
+
+        private const int SVMSupportedClassIndex = 0;
 
         private static List<int> _continuousIndexes = new List<int>
             {
@@ -82,14 +86,12 @@ namespace SVMs
             List<int[]> discreteTrainData = DataWrangler.ConvertContinuesToDiscrete(continuousTrainData, indexClusterMapping);
             List<int[]> discreteTestData = DataWrangler.ConvertContinuesToDiscrete(continuousTestData, indexClusterMapping);
 
-            List<List<int[]>> samples = Sampler.SampleData(discreteTrainData, BiasVarianceNumOfSamples);
-
             var problem = ProblemHelper.ReadProblem(discreteTrainData.Select(arr =>
             {
                 // Move class to front as it is expected by libsvm.
                 int temp = arr[0];
-                arr[0] = arr[ClassIndex];
-                arr[ClassIndex] = temp;
+                arr[SVMSupportedClassIndex] = arr[OriginalClassIndex];
+                arr[OriginalClassIndex] = temp;
                 return arr.Select(i => (double)i).ToList();
             }).ToList());
 
@@ -97,8 +99,8 @@ namespace SVMs
             {
                 // Move class to front as it is expected by libsvm.
                 int temp = arr[0];
-                arr[0] = arr[ClassIndex];
-                arr[ClassIndex] = temp;
+                arr[SVMSupportedClassIndex] = arr[OriginalClassIndex];
+                arr[OriginalClassIndex] = temp;
                 return arr.Select(i => (double)i).ToList();
             }).ToList());
 
@@ -116,17 +118,62 @@ namespace SVMs
                 { "Sigmoid", KernelHelper.SigmoidKernel(gamma, r) },
             };
 
+            // Get accuracies for base comparison
+            // DON'T DO PARALLEL. We don't know if the underlying implementation is MT safe or not.
             //Parallel.ForEach(nameKernelMap.Keys, (kernelName) =>
+            //foreach(string kernelName in nameKernelMap.Keys)
+            //{
+            //    Console.WriteLine($"{kernelName}: {GetSVMAccuracy(problem, test, nameKernelMap[kernelName], c)}");
+            //};
+
+            // Get accuracy of with Naive Bayes
+            //double[] classWeightPrior = new[] { 1.0, 1.0 };
+            //double[] classPriorProbability = new[] { 0.5, 0.5 };
+            //NaiveBayesClassifier naiveBayes = NaiveBayesClassifier.Load(discreteTrainData, SVMSupportedClassIndex, classWeightPrior, classPriorProbability);
+            //Console.WriteLine($"Naive Bayes: {naiveBayes.GetPredictionAccuracy(discreteTestData, SVMSupportedClassIndex)}");
+
+            // Calculate SVMs Bias and Variance
+            List<List<int[]>> samples = Sampler.SampleData(discreteTrainData, BiasVarianceNumOfSamples);
+
+            ConcurrentDictionary<string, ConcurrentDictionary<int, ConcurrentDictionary<int, int>>> kernelInstanceClassifierPredictionsMappings = new ConcurrentDictionary<string, ConcurrentDictionary<int, ConcurrentDictionary<int, int>>>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string kernelName in nameKernelMap.Keys)
+            {
+                ConcurrentDictionary<int, ConcurrentDictionary<int, int>> instanceClassifierPredictionMappings = kernelInstanceClassifierPredictionsMappings.GetOrAdd(kernelName, new ConcurrentDictionary<int, ConcurrentDictionary<int, int>>());
+                for (int classifierIndex = 0; classifierIndex < BiasVarianceNumOfSamples; classifierIndex++)
+                {
+                    problem = ProblemHelper.ReadProblem(samples[classifierIndex].Select(arr => arr.Select(i => (double)i).ToList()).ToList());
+
+                    var svm = new C_SVC(problem, nameKernelMap[kernelName], c);
+
+                    for (int instanceIndex = 0; instanceIndex < discreteTestData.Count; instanceIndex++)
+                    {
+                        ConcurrentDictionary<int, int> classifierPredictionMappings = instanceClassifierPredictionMappings.GetOrAdd(instanceIndex, new ConcurrentDictionary<int, int>());
+                        test = ProblemHelper.ReadProblem(new List<List<double>> { discreteTestData[instanceIndex].Select(i => (double)i).ToList() });
+
+                        for (int i = 0; i < test.l; i++)
+                        {
+                            var x = test.x[i];
+                            var y = test.y[i];
+                            classifierPredictionMappings.GetOrAdd(classifierIndex, (int)svm.Predict(x));
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine("Kernel, Bias, Variance, Accuracy");
             foreach(string kernelName in nameKernelMap.Keys)
             {
-                Console.WriteLine($"{kernelName}: {GetAccuracy(problem, test, nameKernelMap[kernelName], c)}");
-            };
+                ConcurrentDictionary<int, ConcurrentDictionary<int, int>> instanceClassifierPredictionMappings = kernelInstanceClassifierPredictionsMappings.GetOrAdd(kernelName, new ConcurrentDictionary<int, ConcurrentDictionary<int, int>>());
+                Tuple<double, double, double> biasVarianceAccuracy = BiasVarianceHelper.GetBiasVarianceAccuracy(discreteTestData, SVMSupportedClassIndex, instanceClassifierPredictionMappings);
+                Console.WriteLine($"{kernelName}, {biasVarianceAccuracy.Item1}, {biasVarianceAccuracy.Item2}, {biasVarianceAccuracy.Item3}");
+            }
 
             Console.WriteLine("Press ENTER to continue...");
             Console.ReadLine();
         }
 
-        private static double GetAccuracy(svm_problem trainData, svm_problem testData, Kernel kernel, double c)
+        private static double GetSVMAccuracy(svm_problem trainData, svm_problem testData, Kernel kernel, double c)
         {
             double accuracy = 0;
             var svm = new C_SVC(trainData, kernel, c);
